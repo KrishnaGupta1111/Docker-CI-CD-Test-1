@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 4000;
 
 const app = express();
 
-// ✅ Middlewares
+
 app.use(express.json());
 // CORS configuration for development and production
 const allowedOrigins = [
@@ -55,7 +55,7 @@ const startServer = async () => {
   try {
     await connectDB();
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(` Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);
