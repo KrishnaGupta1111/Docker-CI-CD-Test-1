@@ -1,0 +1,74 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/imagify-app
+            git pull origin main
+
+            # Recreate .env files since they're gitignored
+            echo "NODE_ENV=production" > server/.env
+            echo "PORT=4000" >> server/.env
+            echo "MONGODB_URI=mongodb://admin:password123@mongodb:27017/imagify?authSource=admin" >> server/.env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> server/.env
+            echo "CLIPDROP_API=${{ secrets.CLIPDROP_API }}" >> server/.env
+            echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> server/.env
+            echo "RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}" >> server/.env
+            echo "CURRENCY=INR" >> server/.env
+            echo "FRONTEND_URL=http://${{ secrets.EC2_HOST }}" >> server/.env
+
+            echo "VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:4000" > client/.env
+            echo "VITE_RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> client/.env
+
+            # Deploy with proper error handling
+            docker-compose down
+            docker-compose up --build -d
+
+            # Clean up Docker resources
+            docker system prune -f
+
+            # Show deployment status
+            echo "=== Container Status ==="
+            docker-compose ps
+
+            echo "=== Backend Logs (last 20 lines) ==="
+            docker logs imagify-backend --tail=20
+
+            echo "=== Frontend Logs (last 20 lines) ==="
+            docker logs imagify-frontend --tail=20
+
+      - name: Health check with retry
+        run: |
+          echo "Waiting for containers to fully start..."
+          sleep 60
+
+          echo "Testing backend health..."
+          curl --retry 5 --retry-delay 10 --retry-connrefused -f http://${{ secrets.EC2_HOST }}:4000 || exit 1
+          echo "✅ Backend health check passed"
+
+          echo "Testing frontend health..."
+          curl --retry 5 --retry-delay 10 --retry-connrefused -f http://${{ secrets.EC2_HOST }} || exit 1
+          echo "✅ Frontend health check passed"
+
+          echo "🎉 Deployment completed successfully!"
