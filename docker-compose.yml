@@ -40,8 +40,8 @@ services:
   # Frontend React App
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     container_name: imagify-frontend
     restart: unless-stopped
     env_file:
