@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: imagify-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: imagify
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - imagify-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: imagify-backend
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/imagify?authSource=admin
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongodb
+    networks:
+      - imagify-network
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: imagify-frontend
+    restart: unless-stopped
+    env_file:
+      - ./client/.env
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - imagify-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  imagify-network:
+    driver: bridge 
