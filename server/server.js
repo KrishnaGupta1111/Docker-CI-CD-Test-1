@@ -13,9 +13,32 @@ const app = express();
 
 // ✅ Middlewares
 app.use(express.json());
+// CORS configuration for development and production
+const allowedOrigins = [
+  "http://localhost:3000", // React dev server
+  "http://localhost:80", // Docker frontend
+  "http://localhost", // Docker frontend (no port)
+  "https://imaginexx.vercel.app", // Production frontend
+  process.env.FRONTEND_URL, // Environment variable for additional domains
+].filter(Boolean); // Remove any undefined values
+
 app.use(
   cors({
-    origin:"https://imaginexx.vercel.app", // Change '*' to your frontend domain in production like "https://yourfrontend.vercel.app"
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        // In development, allow all origins
+        if (process.env.NODE_ENV === "development") {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
