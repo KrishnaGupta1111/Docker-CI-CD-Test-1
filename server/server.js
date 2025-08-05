@@ -46,7 +46,6 @@ app.use(
   })
 );
 
-// ✅ Routes
 app.use("/api/user", userRouter);
 app.use("/api/image", imageRouter);
 app.get("/", (req, res) => res.send("API Working"));
