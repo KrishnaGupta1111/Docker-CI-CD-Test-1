@@ -18,6 +18,8 @@ const allowedOrigins = [
   "http://localhost:3000", // React dev server
   "http://localhost:80", // Docker frontend
   "http://localhost", // Docker frontend (no port)
+  "http://13.62.100.132", // Your EC2 frontend
+  "http://13.62.100.132:80", // Your EC2 frontend with port
   "https://imaginexx.vercel.app", // Production frontend
   process.env.FRONTEND_URL, // Environment variable for additional domains
 ].filter(Boolean); // Remove any undefined values
